@@ -31,6 +31,12 @@ You need the OpenAI API key in **two different places** depending on what you ru
 
 If classification fails, check the Terminal: you should **not** see the warning about missing `OPENAI_API_KEY`. If you do, fix the line in `.dev.vars` and restart `npm run dev`.
 
+### Troubleshooting (local)
+
+- **Use the app from this server:** open **http://localhost:5173** or **http://127.0.0.1:5173** (or `http://[::1]:5173`). Do **not** open `index.html` as a file (`file://`) and do **not** use another dev server (e.g. Live Server on another port) unless you set `CLASSIFY_API_BASE` in `index.html` to `http://127.0.0.1:5173` (no trailing slash).
+- After `npm run dev`, the terminal should say `OPENAI_API_KEY loaded from env or .dev.vars`. If it warns about a missing key, fix `.dev.vars` and restart.
+- Open the browser **Developer Tools → Console**. If you see `[classify]` warnings, they explain the error (e.g. invalid key, quota).
+
 ---
 
 ## Part 2 — Put the site on GitHub Pages **with** AI

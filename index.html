@@ -135,10 +135,18 @@ color: #C8BFB5; font-size: 20px; padding: 0 4px; line-height: 1;
 
 var CLASSIFY_API_BASE = '';
 
+function isLocalDevHost() {
+  var h = location.hostname;
+  if (h === 'localhost' || h === '127.0.0.1') return true;
+  /* IPv6 loopback — otherwise classifyEndpoint() is empty and AI never runs */
+  if (h === '[::1]' || h === '::1') return true;
+  return false;
+}
+
 function classifyEndpoint() {
   var base = typeof CLASSIFY_API_BASE === 'string' ? CLASSIFY_API_BASE.replace(/\/$/, '') : '';
   if (base) return base + '/api/classify';
-  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') return '/api/classify';
+  if (isLocalDevHost()) return '/api/classify';
   return '';
 }
 
@@ -298,8 +306,18 @@ function classify(item) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name: item.name, categories: catsPayload }),
   })
-    .then(function(r) { return r.json(); })
+    .then(function(r) {
+      return r.json().then(function(data) {
+        if (!r.ok && typeof console !== 'undefined' && console.warn) {
+          console.warn('[classify] HTTP', r.status, data && data.error ? data.error : '');
+        }
+        return data;
+      });
+    })
     .then(function(data) {
+      if (data && data.error && typeof console !== 'undefined' && console.warn) {
+        console.warn('[classify]', data.error);
+      }
       var catId = data.catId || 'other';
       var cat = arrFind(CATS, function(ch) { return ch.id === catId; })
         || arrFind(CATS, function(ch) { return ch.id === 'other'; });
@@ -307,7 +325,8 @@ function classify(item) {
       if (idx !== -1) { items[idx].catId = cat.id; items[idx].pending = false; }
       save(); render();
     })
-    .catch(function() {
+    .catch(function(err) {
+      if (typeof console !== 'undefined' && console.warn) console.warn('[classify] request failed', err);
       var idx2 = arrFindIndex(items, function(x) { return x.id === item.id; });
       if (idx2 !== -1) { items[idx2].catId = 'other'; items[idx2].pending = false; }
       save(); render();

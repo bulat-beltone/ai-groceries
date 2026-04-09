@@ -12,7 +12,7 @@ function readOpenAiKeyFromFile(relPath) {
   try {
     var fp = path.join(__dirname, relPath);
     if (!fs.existsSync(fp)) return undefined;
-    var text = fs.readFileSync(fp, 'utf8');
+    var text = fs.readFileSync(fp, 'utf8').replace(/^\uFEFF/, '');
     var lines = text.split(/\r?\n/);
     for (var i = 0; i < lines.length; i++) {
       var line = lines[i].trim();
@@ -35,6 +35,16 @@ var OPENAI_KEY =
   process.env.OPENAI_API_KEY ||
   readOpenAiKeyFromFile('.dev.vars') ||
   readOpenAiKeyFromFile('.env');
+if (OPENAI_KEY) OPENAI_KEY = OPENAI_KEY.replace(/^\s+|\s+$/g, '');
+
+function classifyCorsHeaders() {
+  return {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Max-Age': '86400',
+  };
+}
 
 function readBody(req) {
   return new Promise(function(resolve, reject) {
@@ -51,22 +61,34 @@ var server = http.createServer(async function(req, res) {
   var host = req.headers.host || 'localhost';
   var u = new URL(req.url || '/', 'http://' + host);
 
-  if (req.method === 'POST' && u.pathname === '/api/classify') {
-    res.setHeader('Content-Type', 'application/json; charset=utf-8');
-
-    var raw;
-    try {
-      raw = await readBody(req);
-    } catch (e) {
-      res.writeHead(400);
-      res.end(JSON.stringify({ error: 'Bad request' }));
+  if (u.pathname === '/api/classify') {
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204, classifyCorsHeaders());
+      res.end();
       return;
     }
 
-    var result = await handleClassifyJsonBody(raw, OPENAI_KEY);
-    res.writeHead(result.status);
-    res.end(JSON.stringify(result.body));
-    return;
+    if (req.method === 'POST') {
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      var h = classifyCorsHeaders();
+      for (var hk in h) {
+        if (Object.prototype.hasOwnProperty.call(h, hk)) res.setHeader(hk, h[hk]);
+      }
+
+      var raw;
+      try {
+        raw = await readBody(req);
+      } catch (e) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: 'Bad request' }));
+        return;
+      }
+
+      var result = await handleClassifyJsonBody(raw, OPENAI_KEY);
+      res.writeHead(result.status);
+      res.end(JSON.stringify(result.body));
+      return;
+    }
   }
 
   if (req.method === 'GET' && u.pathname === '/') {
@@ -85,5 +107,7 @@ server.listen(PORT, function() {
     console.warn(
       '[ai-groceries] No OPENAI_API_KEY. Add it to .dev.vars (see .dev.vars.example) or export OPENAI_API_KEY=...'
     );
+  } else {
+    console.log('[ai-groceries] OPENAI_API_KEY loaded from env or .dev.vars');
   }
 });
