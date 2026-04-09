@@ -128,8 +128,9 @@ color: #C8BFB5; font-size: 20px; padding: 0 4px; line-height: 1;
 </div>
 
 <script>
-// REPLACE WITH YOUR NEW KEY
-var OPENAI_KEY = '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';
+/* AI classification runs via same-origin POST /api/classify (see server.js).
+   Open the app at http://localhost:5173 after: OPENAI_API_KEY=... npm run dev
+   Do not open index.html as file:// — the API proxy will not load. */
 
 var CATS = [
   {id:'produce',   name:'Овощи и фрукты',     icon:'🥬'},
@@ -260,48 +261,39 @@ function handleAdd(name) {
   classify(item);
 }
 
-/* ── AI classify ────────────────────────────────────────────── */
+/* ── AI classify (server proxy avoids browser CORS + keeps key off the client) ─ */
 function classify(item) {
-  var catList = '';
-  for (var i = 0; i < CATS.length; i++) catList += CATS[i].id + ': ' + CATS[i].name + '\n';
+  if (location.protocol === 'file:') {
+    var i0 = arrFindIndex(items, function(x) { return x.id === item.id; });
+    if (i0 !== -1) { items[i0].catId = 'other'; items[i0].pending = false; }
+    save(); render();
+    return;
+  }
 
-  var body = JSON.stringify({
-    model: 'gpt-4o-mini',
-    messages: [{
-      role: 'user',
-      content: 'К какому отделу супермаркета относится "' + item.name + '"?\nОтделы:\n' + catList + 'Верни ТОЛЬКО id отдела одним словом.'
-    }],
-    max_tokens: 10
-  });
+  var catsPayload = [];
+  for (var c = 0; c < CATS.length; c++) {
+    catsPayload.push({ id: CATS[c].id, name: CATS[c].name });
+  }
 
-  var xhr = new XMLHttpRequest();
-  xhr.open('POST', 'https://api.openai.com/v1/chat/completions', true);
-  xhr.setRequestHeader('Content-Type', 'application/json');
-  xhr.setRequestHeader('Authorization', 'Bearer ' + OPENAI_KEY);
-  xhr.onreadystatechange = function() {
-    if (xhr.readyState !== 4) return;
-    try {
-      var data = JSON.parse(xhr.responseText);
-      var raw = '';
-      if (data.choices && data.choices[0] && data.choices[0].message) {
-        raw = data.choices[0].message.content.replace(/^\s+|\s+$/g, '').toLowerCase().replace(/[^a-z]/g, '');
-      }
-      var cat = arrFind(CATS, function(c) { return c.id === raw; }) || arrFind(CATS, function(c) { return c.id === 'other'; });
-      var idx = arrFindIndex(items, function(i) { return i.id === item.id; });
+  fetch('/api/classify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: item.name, categories: catsPayload }),
+  })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var catId = data.catId || 'other';
+      var cat = arrFind(CATS, function(ch) { return ch.id === catId; })
+        || arrFind(CATS, function(ch) { return ch.id === 'other'; });
+      var idx = arrFindIndex(items, function(x) { return x.id === item.id; });
       if (idx !== -1) { items[idx].catId = cat.id; items[idx].pending = false; }
       save(); render();
-    } catch(e) {
-      var idx2 = arrFindIndex(items, function(i) { return i.id === item.id; });
+    })
+    .catch(function() {
+      var idx2 = arrFindIndex(items, function(x) { return x.id === item.id; });
       if (idx2 !== -1) { items[idx2].catId = 'other'; items[idx2].pending = false; }
       save(); render();
-    }
-  };
-  xhr.onerror = function() {
-    var idx = arrFindIndex(items, function(i) { return i.id === item.id; });
-    if (idx !== -1) { items[idx].catId = 'other'; items[idx].pending = false; }
-    save(); render();
-  };
-  xhr.send(body);
+    });
 }
 
 /* ── render ─────────────────────────────────────────────────── */
