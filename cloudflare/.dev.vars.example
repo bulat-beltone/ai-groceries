@@ -1,2 +1,0 @@
-# Copy to .dev.vars for: npx wrangler dev (local testing only). Do not commit .dev.vars.
-OPENAI_API_KEY=

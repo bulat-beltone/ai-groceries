@@ -129,9 +129,9 @@ color: #C8BFB5; font-size: 20px; padding: 0 4px; line-height: 1;
 
 <script>
 /* Classification API:
-   - Local: npm run dev → POST /api/classify on same origin (server.js).
-   - GitHub Pages: deploy cloudflare/src/worker.js, set CLASSIFY_API_BASE below to the Worker URL (https://….workers.dev), no trailing slash.
-   GitHub Secrets do not reach the browser; the key stays in Cloudflare (wrangler secret put). */
+   - Local: npm run dev → POST /api/classify (server.js).
+   - GitHub Pages: deploy Worker from repo root (`npm run deploy:worker` after wrangler secret put OPENAI_API_KEY), then set CLASSIFY_API_BASE to the Worker URL (https://….workers.dev), no trailing slash.
+   GitHub Secrets do not reach the browser; the key stays only in Cloudflare (wrangler secret). */
 
 var CLASSIFY_API_BASE = '';
 

@@ -1,5 +1,0 @@
-# Deploy: cd cloudflare && npx wrangler deploy
-# Secret:   npx wrangler secret put OPENAI_API_KEY
-name = "ai-groceries-classify"
-main = "src/worker.js"
-compatibility_date = "2024-10-01"
