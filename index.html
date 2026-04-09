@@ -129,11 +129,10 @@ color: #C8BFB5; font-size: 20px; padding: 0 4px; line-height: 1;
 
 <script>
 /* Classification API:
-   - Local: npm run dev → POST /api/classify (server.js).
-   - GitHub Pages: deploy Worker from repo root (`npm run deploy:worker` after wrangler secret put OPENAI_API_KEY), then set CLASSIFY_API_BASE to the Worker URL (https://….workers.dev), no trailing slash.
-   GitHub Secrets do not reach the browser; the key stays only in Cloudflare (wrangler secret). */
+   - Local (npm run dev): same-origin POST /api/classify → server.js (takes priority over CLASSIFY_API_BASE).
+   - GitHub Pages: CLASSIFY_API_BASE → Cloudflare Worker (OpenAI key via wrangler secret only). */
 
-var CLASSIFY_API_BASE = '';
+var CLASSIFY_API_BASE = 'https://ai-groceries-classify.bulatbeltone.workers.dev';
 
 function isLocalDevHost() {
   var h = location.hostname;
@@ -144,9 +143,9 @@ function isLocalDevHost() {
 }
 
 function classifyEndpoint() {
+  if (isLocalDevHost()) return '/api/classify';
   var base = typeof CLASSIFY_API_BASE === 'string' ? CLASSIFY_API_BASE.replace(/\/$/, '') : '';
   if (base) return base + '/api/classify';
-  if (isLocalDevHost()) return '/api/classify';
   return '';
 }
 
