@@ -4,7 +4,11 @@
   "type": "module",
   "scripts": {
     "dev": "node server.js",
-    "start": "node server.js"
+    "start": "node server.js",
+    "deploy:worker": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^3.99.0"
   },
   "engines": {
     "node": ">=18"

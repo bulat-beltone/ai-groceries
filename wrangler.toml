@@ -1,0 +1,9 @@
+name = "ai-groceries-classify"
+main = "worker/index.js"
+compatibility_date = "2024-10-01"
+
+# API key (required for classify):
+#   npx wrangler secret put OPENAI_API_KEY
+#
+# Deploy:
+#   npx wrangler deploy

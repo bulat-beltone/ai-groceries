@@ -4,6 +4,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- GitHub Pages: set to your Worker URL after `npx wrangler deploy`, e.g. https://ai-groceries-classify.your-subdomain.workers.dev/api/classify -->
+<meta name="classify-api" content="">
 <title>Продукты</title>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -128,9 +130,22 @@ color: #C8BFB5; font-size: 20px; padding: 0 4px; line-height: 1;
 </div>
 
 <script>
-/* AI classification runs via same-origin POST /api/classify (see server.js).
-   Open the app at http://localhost:5173 after: OPENAI_API_KEY=... npm run dev
-   Do not open index.html as file:// — the API proxy will not load. */
+/* Classify API: localhost uses Node server (npm run dev). Deployed (GitHub Pages): set
+   <meta name="classify-api" content="https://…workers.dev/api/classify"> or window.CLASSIFY_URL. */
+
+function resolveClassifyUrl() {
+  if (typeof window.CLASSIFY_URL === 'string' && window.CLASSIFY_URL) {
+    return window.CLASSIFY_URL;
+  }
+  var m = document.querySelector('meta[name="classify-api"]');
+  var fromMeta = m && m.getAttribute('content') ? m.getAttribute('content').replace(/^\s+|\s+$/g, '') : '';
+  if (fromMeta) return fromMeta;
+  var h = location.hostname;
+  if (h === 'localhost' || h === '127.0.0.1') {
+    return location.origin + '/api/classify';
+  }
+  return new URL('api/classify', location.href).href;
+}
 
 var CATS = [
   {id:'produce',   name:'Овощи и фрукты',     icon:'🥬'},
@@ -275,7 +290,7 @@ function classify(item) {
     catsPayload.push({ id: CATS[c].id, name: CATS[c].name });
   }
 
-  fetch('/api/classify', {
+  fetch(resolveClassifyUrl(), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name: item.name, categories: catsPayload }),
