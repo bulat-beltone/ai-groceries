@@ -4,8 +4,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<!-- GitHub Pages: set to your Worker URL after `npx wrangler deploy`, e.g. https://ai-groceries-classify.your-subdomain.workers.dev/api/classify -->
-<meta name="classify-api" content="">
 <title>Продукты</title>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -130,21 +128,18 @@ color: #C8BFB5; font-size: 20px; padding: 0 4px; line-height: 1;
 </div>
 
 <script>
-/* Classify API: localhost uses Node server (npm run dev). Deployed (GitHub Pages): set
-   <meta name="classify-api" content="https://…workers.dev/api/classify"> or window.CLASSIFY_URL. */
+/* Classification API:
+   - Local: npm run dev → POST /api/classify on same origin (server.js).
+   - GitHub Pages: deploy cloudflare/src/worker.js, set CLASSIFY_API_BASE below to the Worker URL (https://….workers.dev), no trailing slash.
+   GitHub Secrets do not reach the browser; the key stays in Cloudflare (wrangler secret put). */
 
-function resolveClassifyUrl() {
-  if (typeof window.CLASSIFY_URL === 'string' && window.CLASSIFY_URL) {
-    return window.CLASSIFY_URL;
-  }
-  var m = document.querySelector('meta[name="classify-api"]');
-  var fromMeta = m && m.getAttribute('content') ? m.getAttribute('content').replace(/^\s+|\s+$/g, '') : '';
-  if (fromMeta) return fromMeta;
-  var h = location.hostname;
-  if (h === 'localhost' || h === '127.0.0.1') {
-    return location.origin + '/api/classify';
-  }
-  return new URL('api/classify', location.href).href;
+var CLASSIFY_API_BASE = '';
+
+function classifyEndpoint() {
+  var base = typeof CLASSIFY_API_BASE === 'string' ? CLASSIFY_API_BASE.replace(/\/$/, '') : '';
+  if (base) return base + '/api/classify';
+  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') return '/api/classify';
+  return '';
 }
 
 var CATS = [
@@ -276,11 +271,19 @@ function handleAdd(name) {
   classify(item);
 }
 
-/* ── AI classify (server proxy avoids browser CORS + keeps key off the client) ─ */
+/* ── AI classify (local server or Cloudflare Worker — key never in the page) ─ */
 function classify(item) {
   if (location.protocol === 'file:') {
     var i0 = arrFindIndex(items, function(x) { return x.id === item.id; });
     if (i0 !== -1) { items[i0].catId = 'other'; items[i0].pending = false; }
+    save(); render();
+    return;
+  }
+
+  var url = classifyEndpoint();
+  if (!url) {
+    var i1 = arrFindIndex(items, function(x) { return x.id === item.id; });
+    if (i1 !== -1) { items[i1].catId = 'other'; items[i1].pending = false; }
     save(); render();
     return;
   }
@@ -290,7 +293,7 @@ function classify(item) {
     catsPayload.push({ id: CATS[c].id, name: CATS[c].name });
   }
 
-  fetch(resolveClassifyUrl(), {
+  fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name: item.name, categories: catsPayload }),

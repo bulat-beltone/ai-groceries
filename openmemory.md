@@ -7,9 +7,18 @@ Static grocery list UI (`index.html`) with Russian copy. Items are classified in
 ## Architecture
 
 - **Frontend:** Single-page `index.html` (localStorage `gr7`), no bundler.
-- **Local dev:** `server.js` serves the app and `POST /api/classify` with `OPENAI_API_KEY` in the environment (`npm run dev`, http://localhost:5173).
-- **GitHub Pages:** Browsers cannot call OpenAI directly (CORS). Use the **Cloudflare Worker** in `worker/` — same `/api/classify` contract, `OPENAI_API_KEY` via `wrangler secret put OPENAI_API_KEY`.
-- **Deploy URL in the page:** Set `<meta name="classify-api" content="https://<worker>.workers.dev/api/classify">` in `index.html` (or `window.CLASSIFY_URL`) to that Worker URL. Localhost ignores the meta and uses `location.origin + '/api/classify'`.
+- **AI (local):** `POST /api/classify` on Node (`server.js`, port 5173). Env: `OPENAI_API_KEY`.
+- **AI (GitHub Pages):** Static site cannot hold secrets. Deploy **`cloudflare/src/worker.js`** as a Cloudflare Worker; store **`OPENAI_API_KEY`** with `wrangler secret put OPENAI_API_KEY` (not in repo). In `index.html`, set **`CLASSIFY_API_BASE`** to the Worker origin (e.g. `https://ai-groceries-classify.your-subdomain.workers.dev`, no trailing slash). Pages and Worker are separate; GitHub Secrets are only for CI if you automate Worker deploy—they do not reach the live HTML.
+
+### GitHub Pages + Worker (manual)
+
+1. Install [Wrangler](https://developers.cloudflare.com/workers/wrangler/install-and-update/) (`npm i -g wrangler` or `npx wrangler`).
+2. `cd cloudflare && npx wrangler login` (Cloudflare account).
+3. Optionally rename the worker in `wrangler.toml` (`name = "…"`).
+4. `npx wrangler secret put OPENAI_API_KEY` — paste API key once; it stays on Cloudflare.
+5. `npx wrangler deploy` — note the Worker URL.
+6. In `index.html`, set `var CLASSIFY_API_BASE = 'https://…workers.dev';`, commit, push so Pages rebuilds.
+7. Local Worker test: copy `cloudflare/.dev.vars.example` to `cloudflare/.dev.vars`, add key, run `npx wrangler dev` from `cloudflare/`.
 
 ## User Defined Namespaces
 
@@ -17,10 +26,9 @@ Static grocery list UI (`index.html`) with Russian copy. Items are classified in
 
 ## Components
 
-- **server.js** — Dev HTTP server; uses `lib/handle-classify-request.js`.
-- **worker/index.js** — Production edge proxy; same handler + CORS `*`.
-- **lib/** — Shared OpenAI prompt, response parsing, and JSON handler.
+- **server.js** — HTTP server: serves `/`, proxies classification to OpenAI, parses category id with word-boundary / token matching.
+- **cloudflare/src/worker.js** — Same `/api/classify` contract + CORS for Pages; `OPENAI_API_KEY` binding via Wrangler secret.
 
 ## Patterns
 
-- Category ids are English (`dairy`, `bakery`, …); model output is matched with `\b` + token split.
+- Category ids are English (`dairy`, `bakery`, …); model output is matched with `\b` + token split, not by stripping all non-letters to one string.
