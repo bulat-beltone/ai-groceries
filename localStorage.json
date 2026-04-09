@@ -1,0 +1,3 @@
+{
+  "gr7" : "{\"items\":[{\"id\":2,\"name\":\"Сыр\",\"checked\":false,\"catId\":\"other\",\"pending\":false,\"addedAt\":1775731953715,\"checkedAt\":null},{\"id\":1,\"name\":\"Хлеб\",\"checked\":false,\"catId\":\"other\",\"pending\":false,\"addedAt\":1775731949137,\"checkedAt\":null},{\"id\":0,\"name\":\"Молоко\",\"checked\":false,\"catId\":\"other\",\"pending\":false,\"addedAt\":1775731941247,\"checkedAt\":null}],\"hist\":[{\"name\":\"Молоко\"},{\"name\":\"Хлеб\"},{\"name\":\"Сыр\"}],\"uid\":3}"
+}
