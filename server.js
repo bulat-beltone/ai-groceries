@@ -1,11 +1,40 @@
 import http from 'http';
 import fs from 'fs';
+import path from 'path';
 import { URL, fileURLToPath } from 'url';
 import { handleClassifyJsonBody } from './lib/handle-classify-request.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const PORT = parseInt(process.env.PORT, 10) || 5173;
-const OPENAI_KEY = process.env.OPENAI_API_KEY;
+
+/** Read OPENAI_API_KEY=... from .dev.vars or .env (Wrangler-style; not committed). */
+function readOpenAiKeyFromFile(relPath) {
+  try {
+    var fp = path.join(__dirname, relPath);
+    if (!fs.existsSync(fp)) return undefined;
+    var text = fs.readFileSync(fp, 'utf8');
+    var lines = text.split(/\r?\n/);
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i].trim();
+      if (!line || line.indexOf('#') === 0) continue;
+      var eq = line.indexOf('=');
+      if (eq === -1) continue;
+      var k = line.slice(0, eq).trim();
+      var v = line.slice(eq + 1).trim();
+      if ((v.charAt(0) === '"' && v.charAt(v.length - 1) === '"') ||
+          (v.charAt(0) === "'" && v.charAt(v.length - 1) === "'")) {
+        v = v.slice(1, -1);
+      }
+      if (k === 'OPENAI_API_KEY') return v;
+    }
+  } catch (e) {}
+  return undefined;
+}
+
+var OPENAI_KEY =
+  process.env.OPENAI_API_KEY ||
+  readOpenAiKeyFromFile('.dev.vars') ||
+  readOpenAiKeyFromFile('.env');
 
 function readBody(req) {
   return new Promise(function(resolve, reject) {
@@ -52,4 +81,9 @@ var server = http.createServer(async function(req, res) {
 
 server.listen(PORT, function() {
   console.log('ai-groceries: http://localhost:' + PORT);
+  if (!OPENAI_KEY) {
+    console.warn(
+      '[ai-groceries] No OPENAI_API_KEY. Add it to .dev.vars (see .dev.vars.example) or export OPENAI_API_KEY=...'
+    );
+  }
 });

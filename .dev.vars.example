@@ -1,3 +1,3 @@
-# Copy to .dev.vars for local Worker testing: npx wrangler dev
-# Do not commit .dev.vars (gitignored).
+# Rename/copy to .dev.vars and put your real key on the line below.
+# Used by: npm run dev (server.js reads it) and npx wrangler dev
 OPENAI_API_KEY=
