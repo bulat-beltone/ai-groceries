@@ -55,7 +55,7 @@ GitHub Pages only hosts **static files**. The API key cannot live in the website
    ```
    Paste the same key you use locally, press Enter.
 
-3. Deploy the Worker:
+3. Deploy the Worker (в коде есть **`POST /api/classify`** и **`POST /api/translate`** — после обновления репозитория **задеплойте снова**, иначе перевод даст 404):
    ```bash
    npm run deploy:worker
    ```
