@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { URL, fileURLToPath } from 'url';
 import { handleClassifyJsonBody } from './lib/handle-classify-request.js';
+import { handleTranslateJsonBody } from './lib/handle-translate-request.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const PORT = parseInt(process.env.PORT, 10) || 5173;
@@ -37,7 +38,7 @@ var OPENAI_KEY =
   readOpenAiKeyFromFile('.env');
 if (OPENAI_KEY) OPENAI_KEY = OPENAI_KEY.replace(/^\s+|\s+$/g, '');
 
-function classifyCorsHeaders() {
+function apiCorsHeaders() {
   return {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
@@ -61,16 +62,16 @@ var server = http.createServer(async function(req, res) {
   var host = req.headers.host || 'localhost';
   var u = new URL(req.url || '/', 'http://' + host);
 
-  if (u.pathname === '/api/classify') {
+  if (u.pathname === '/api/classify' || u.pathname === '/api/translate') {
     if (req.method === 'OPTIONS') {
-      res.writeHead(204, classifyCorsHeaders());
+      res.writeHead(204, apiCorsHeaders());
       res.end();
       return;
     }
 
     if (req.method === 'POST') {
       res.setHeader('Content-Type', 'application/json; charset=utf-8');
-      var h = classifyCorsHeaders();
+      var h = apiCorsHeaders();
       for (var hk in h) {
         if (Object.prototype.hasOwnProperty.call(h, hk)) res.setHeader(hk, h[hk]);
       }
@@ -84,7 +85,10 @@ var server = http.createServer(async function(req, res) {
         return;
       }
 
-      var result = await handleClassifyJsonBody(raw, OPENAI_KEY);
+      var result =
+        u.pathname === '/api/classify'
+          ? await handleClassifyJsonBody(raw, OPENAI_KEY)
+          : await handleTranslateJsonBody(raw, OPENAI_KEY);
       res.writeHead(result.status);
       res.end(JSON.stringify(result.body));
       return;

@@ -1,4 +1,5 @@
 import { handleClassifyJsonBody } from '../lib/handle-classify-request.js';
+import { handleTranslateJsonBody } from '../lib/handle-translate-request.js';
 
 var cors = {
   'Access-Control-Allow-Origin': '*',
@@ -20,6 +21,16 @@ export default {
       var result = await handleClassifyJsonBody(raw, key);
       return new Response(JSON.stringify(result.body), {
         status: result.status,
+        headers: Object.assign({ 'Content-Type': 'application/json; charset=utf-8' }, cors),
+      });
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/translate') {
+      var rawTr = await request.text();
+      var keyTr = env.OPENAI_API_KEY;
+      var resultTr = await handleTranslateJsonBody(rawTr, keyTr);
+      return new Response(JSON.stringify(resultTr.body), {
+        status: resultTr.status,
         headers: Object.assign({ 'Content-Type': 'application/json; charset=utf-8' }, cors),
       });
     }
