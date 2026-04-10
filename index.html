@@ -21,7 +21,7 @@ input, button, select, textarea {
   -webkit-flex-wrap: wrap; flex-wrap: wrap;
   -webkit-align-items: center; align-items: center;
   -webkit-justify-content: space-between; justify-content: space-between;
-  gap: 10px 12px; margin-bottom: 28px;
+  gap: 16px 12px; margin-bottom: 24px;
 }
 .header-text {
   min-width: 0;
@@ -171,7 +171,6 @@ gap: 9px; padding: 0 2px; margin-bottom: 8px;
 }
 .sec-icon { font-size: 18px; }
 .sec-name { font-size: 14px; font-weight: 700; -webkit-flex: 1; flex: 1; }
-.sec-count { font-size: 11px; color: #9C8F83; background: #EDE9E3; padding: 2px 8px; border-radius: 20px; }
 .sec-body { background: #fff; border: 1.5px solid #E4DDD3; border-radius: 14px; overflow: hidden; }
 
 .item {
@@ -261,6 +260,7 @@ border-right: 2.5px solid #fff; border-bottom: 2.5px solid #fff;
 .item-name { font-size: 15px; -webkit-flex: 1; flex: 1; cursor: pointer; -webkit-user-select: none; user-select: none; }
 .item-name.done { text-decoration: line-through; color: #9C8F83; }
 .item.pending .item-name { color: #B0A89F; }
+.item.pending .item-name-input { color: #B0A89F; }
 .item.pending .cb-ring { border-style: dashed; border-color: #C8BFB5; }
 .item-del {
   display: -webkit-flex; display: flex;
@@ -1051,11 +1051,15 @@ function renderItem(item) {
     ? '<button class="item-del" type="button" data-del="' + item.id + '" aria-label="\u0423\u0434\u0430\u043b\u0438\u0442\u044c">&#215;</button>'
     : '';
 
-  return '<div class="item' + (item.pending ? ' pending' : '') + '" id="item-' + item.id + '">'
-    + '<label class="cb-wrap">'
-    + '<input type="checkbox" data-id="' + item.id + '"' + (item.checked ? ' checked' : '') + '>'
-    + '<span class="cb-ring"></span>'
-    + '</label>'
+  var cbBlock = listMode === 'shop'
+    ? '<label class="cb-wrap">'
+      + '<input type="checkbox" data-id="' + item.id + '"' + (item.checked ? ' checked' : '') + '>'
+      + '<span class="cb-ring"></span>'
+      + '</label>'
+    : '';
+
+  return '<div class="item' + (item.pending ? ' pending' : '') + (listMode === 'edit' ? ' item-edit' : '') + '" id="item-' + item.id + '">'
+    + cbBlock
     + '<div class="item-main">'
     + nameBlock
     + trBlock
@@ -1090,7 +1094,6 @@ function render() {
     html += '<div class="section"><div class="sec-head">'
       + '<span class="sec-icon">' + cat.icon + '</span>'
       + '<span class="sec-name">' + cat.name + '</span>'
-      + '<span class="sec-count">' + ci.length + '</span>'
       + '</div><div class="sec-body">';
     for (var q = 0; q < si.length; q++) html += renderItem(si[q]);
     html += '</div></div>';
